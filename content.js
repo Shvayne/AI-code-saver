@@ -1,22 +1,63 @@
-document.addEventListener('click', function(e) {
-    /*
-    check if the clicked element is a button
-    and its text contains "copy code"
-    */
-    if (e.target && e.target.tagName === 'BUTTON' && /copy code/i.test(e.target.innerText))
-        {
-        //find the snippet within the closet container
-        let codeSnippet = '';
-        let parent = e.target.closest('div, section, article');
-        if (parent){
-            let codeElement = parent.querySelector('pre, code');
-            if(codeElement){
-                codeSnippet = codeElement.innerText;
-            }
-        }
-        //send a message to the background script with the code snippet
+console.log("loaded content scipt");
+function addCopyButton(codeElement){
+    //check if the button already exists
+    if (codeElement.nextElementSibling && codeElement.nextElementSibling.classList.contains('copy-code-button')){
+        return;
+    }
+    // create the button
+    let button = document.createElement('button');
+    button.innerText = 'Copy code';
+    button.classList.add('copy-code-button');
+    button.style.marginTop = '10px';
+    button.style.display = 'inline';
+
+    //insert the button after the code element
+    codeElement.parentNode.insertBefore(button, codeElement.nextSibling);
+}
+// function to handle click events on "copy code buttons"
+function handleButtonClick(event){
+    if (event.target && event.target.tagName === 'BUTTON' && event.target.innerText === 'Copy code'){
+        console.log("Copy Code button clicked");
+        let codeElement = event.target.previousElementSibling;
+        let codeSnippet = codeElement ? codeElement.innerText : '';
+        console.log("Extracted code snippet:", codeSnippet);
+
         if (codeSnippet){
-            chrome.runtime.sendMessage({ action: "copyCode", code: codeSnippet });
+            chrome.runtime.sendMessage({ action: "copyCode", code: codeSnippet }, function(response){
+                if (chrome.runtime.lastError){
+                    console.error(chrome.runtime.lastError.message);
+                } else {
+                    console.log("code snippet sent to background script: ", response);
+                }
+            });
         }
     }
-}, false);
+}
+
+//initialize mutation observer
+
+let observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === 1 && (node.tagName === 'PRE' || node.tagName === 'CODE')){
+                addCopyButton(node);
+            }else if (node.nodeType === 1){
+                // check if any child nodes are code snippets
+                node.querySelectorAll('pre, code').forEach((childNode) => {
+                    addCopyButton(childNode);
+                });
+            }
+        });
+    });
+});
+
+//start observing document body for added nodes
+observer.observe(document.body, { childList: true, subtree: true});
+
+//add event listener for button clicks
+document.addEventListener('click', handleButtonClick, false);
+
+//initial scan for existing code elements
+document.querySelectorAll('pre, code').forEach((codeElement) => {
+    addCopyButton(codeElement);
+});
