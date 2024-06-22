@@ -1,4 +1,8 @@
 function addCopyButton(codeElement){
+    // check if the code snippet has at least 3 lines
+    let codeLines = codeElement.innerText.split('\n');
+    if (codeLines.length < 3) return;
+
     //check if a button with text "copy code" already exists on page
     let sibling = codeElement.nextElementSibling;
     let buttonExists = false;
@@ -12,11 +16,6 @@ function addCopyButton(codeElement){
     }
 
     if (!buttonExists) {
-        //ensure code snippet is at least 3 lines long
-        let codeLines = codeElement.innerText.split('\n');
-        if (codeLines.length < 3) {
-            return;
-        }
         // create the button
         let button = document.createElement('button');
         button.innerText = 'Copy code';
@@ -131,6 +130,6 @@ function saveSelectedText(text) {
 document.addEventListener('copy', (event) => {
     let selectedText = window.getSelection().toString().trim();
     if (selectedText.length > 0) {
-        setTimeout(() => saveSelectedText(selectedText), 0);
+        saveSelectedText(selectedText);
     }
 });
